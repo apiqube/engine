@@ -3,7 +3,8 @@
 > Declarative, plugin-driven API testing engine.
 > One format. Any protocol. Zero boilerplate.
 
-[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![CI](https://github.com/apiqube/engine/actions/workflows/ci.yml/badge.svg)](https://github.com/apiqube/engine/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=flat-square)]()
 

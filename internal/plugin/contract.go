@@ -1,6 +1,5 @@
 package plugin
 
-// Plugin is the interface for all protocol executors (built-in and WASM).
 type Plugin interface {
 	Info() PluginInfo
 	Init(config map[string]any) error
@@ -18,7 +17,7 @@ type PluginInfo struct {
 }
 
 type FieldSpec struct {
-	Type        string `json:"type"` // string, object, array, map, bool, number
+	Type        string `json:"type"`
 	Required    bool   `json:"required"`
 	Description string `json:"description"`
 }
@@ -36,7 +35,7 @@ type TestInput struct {
 }
 
 type TestOutput struct {
-	Status     any               `json:"status"` // int for HTTP, string for gRPC
+	Status     any               `json:"status"`
 	Headers    map[string]string `json:"headers,omitempty"`
 	Body       any               `json:"body,omitempty"`
 	DurationMs int64             `json:"duration_ms"`

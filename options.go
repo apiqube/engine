@@ -4,36 +4,28 @@ import "maps"
 
 type Option func(*Engine)
 
-func WithEventHandler(handler EventHandler) Option {
+func WithEventHandler(h EventHandler) Option {
 	return func(e *Engine) {
-		if handler != nil {
-			e.handler = handler
+		if h != nil {
+			e.handler = h
 		}
 	}
 }
 
-func WithSignals(signals chan Signal) Option {
-	return func(e *Engine) {
-		e.signals = signals
-	}
+func WithSignals(ch chan Signal) Option {
+	return func(e *Engine) { e.signals = ch }
+}
+
+func WithConfigPath(path string) Option {
+	return func(e *Engine) { e.configPath = path }
 }
 
 func WithPluginDir(dir string) Option {
-	return func(e *Engine) {
-		e.pluginDir = dir
-	}
-}
-
-func WithConfig(config *Config) Option {
-	return func(e *Engine) {
-		e.config = config
-	}
+	return func(e *Engine) { e.pluginDir = dir }
 }
 
 func WithParallel(enabled bool) Option {
-	return func(e *Engine) {
-		e.parallel = enabled
-	}
+	return func(e *Engine) { e.parallel = enabled }
 }
 
 func WithMaxConcurrent(n int) Option {
@@ -44,8 +36,10 @@ func WithMaxConcurrent(n int) Option {
 	}
 }
 
+func WithFailFast(enabled bool) Option {
+	return func(e *Engine) { e.failFast = enabled }
+}
+
 func WithEnv(env map[string]string) Option {
-	return func(e *Engine) {
-		maps.Copy(e.env, env)
-	}
+	return func(e *Engine) { maps.Copy(e.env, env) }
 }

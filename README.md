@@ -48,15 +48,19 @@ func main() {
 
 ```
 engine/
-├── manifest/     Parsing, normalization, validation
-├── graph/        Dependency analysis, topological sort, wave grouping
-├── runner/       Execution engine, parallel wave runner
-├── dataflow/     PassManager — prev, save, alias resolution
-├── template/     Template DSL — Fake.*, chainable methods
-├── assert/       Assertion engine — operators, type checks
-├── plugin/       WASM plugin host (wazero), registry, contract
-├── builtin/      Built-in plugins (HTTP executor)
-└── config/       .qube.yaml parser
+├── engine.go        Engine constructor, Run(), Check()
+├── interfaces.go    Sealed Event system, EventHandler, Signal
+├── options.go       Functional options (WithEventHandler, etc.)
+├── results.go       Results, TestResult, ValidationError
+└── internal/
+    ├── config/      .qube.yaml parsing
+    ├── manifest/    Test file types, normalization
+    ├── plugin/      Plugin contract and WASM host
+    ├── graph/       Dependency analysis, wave grouping
+    ├── runner/      Execution engine, parallel runner
+    ├── dataflow/    PassManager — prev, save, alias
+    ├── template/    Template DSL — Fake.*, methods
+    └── assert/      Assertion engine — operators, types
 ```
 
 ## Related Repositories

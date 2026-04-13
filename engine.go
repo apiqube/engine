@@ -3,22 +3,16 @@ package engine
 import "context"
 
 type Engine struct {
-	handler       EventHandler
-	signals       chan Signal
-	configPath    string
 	pluginDir     string
 	parallel      bool
 	maxConcurrent int
 	failFast      bool
-	env           map[string]string
 }
 
 func New(opts ...Option) *Engine {
 	e := &Engine{
-		handler:       NopHandler{},
 		parallel:      true,
 		maxConcurrent: 10,
-		env:           make(map[string]string),
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -26,16 +20,29 @@ func New(opts ...Option) *Engine {
 	return e
 }
 
-func (e *Engine) Run(ctx context.Context, paths ...string) (*Results, error) {
-	// TODO: Phase 1-2
+func (e *Engine) Run(ctx context.Context, opts ...RunOption) (*Results, error) {
+	rc := e.buildRunConfig(opts)
+	_ = rc // TODO: Phase 1-2
 	return &Results{}, nil
 }
 
-func (e *Engine) Check(paths ...string) ([]ValidationError, error) {
-	// TODO: Phase 1-2
+func (e *Engine) Check(ctx context.Context, opts ...RunOption) ([]ValidationError, error) {
+	rc := e.buildRunConfig(opts)
+	_ = rc // TODO: Phase 1-2
 	return nil, nil
 }
 
-func (e *Engine) emit(event Event) {
-	e.handler.Handle(event)
+func (e *Engine) buildRunConfig(opts []RunOption) *runConfig {
+	rc := &runConfig{
+		handler:   NopHandler{},
+		pluginDir: e.pluginDir,
+	}
+	for _, opt := range opts {
+		opt(rc)
+	}
+	return rc
+}
+
+func (rc *runConfig) emit(event Event) {
+	rc.handler.Handle(event)
 }

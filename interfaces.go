@@ -11,6 +11,7 @@ type EventHandler interface {
 // Event is a sealed interface — only types in this package can implement it.
 type Event interface {
 	sealed()
+	Type() string
 }
 
 // Signal represents a control command from frontend to engine.
@@ -155,6 +156,19 @@ func (ConfigLoaded) sealed()   {}
 func (TemplateError) sealed()  {}
 func (Progress) sealed()       {}
 func (PluginEvent) sealed()    {}
+
+func (RunStarted) Type() string     { return "RunStarted" }
+func (RunCompleted) Type() string   { return "RunCompleted" }
+func (WaveStarted) Type() string    { return "WaveStarted" }
+func (WaveCompleted) Type() string  { return "WaveCompleted" }
+func (TestStarted) Type() string    { return "TestStarted" }
+func (TestCompleted) Type() string  { return "TestCompleted" }
+func (GraphResolved) Type() string  { return "GraphResolved" }
+func (PluginLoaded) Type() string   { return "PluginLoaded" }
+func (ConfigLoaded) Type() string   { return "ConfigLoaded" }
+func (TemplateError) Type() string  { return "TemplateError" }
+func (Progress) Type() string       { return "Progress" }
+func (PluginEvent) Type() string    { return "PluginEvent" }
 
 // Supporting data types
 

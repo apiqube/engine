@@ -21,7 +21,7 @@ type Results struct {
 type TestResult struct {
 	Name       string            `json:"name"`
 	File       string            `json:"file"`
-	Protocol   string            `json:"protocol"`
+	Protocol   Protocol          `json:"protocol"`
 	Target     string            `json:"target,omitempty"`
 	Status     TestStatus        `json:"status"`
 	Duration   time.Duration     `json:"duration"`
@@ -43,11 +43,19 @@ type WaveResult struct {
 	Skipped  int           `json:"skipped"`
 }
 
+// Severity classifies the importance of a validation issue.
+type Severity string
+
+const (
+	SeverityError   Severity = "error"
+	SeverityWarning Severity = "warning"
+)
+
 // ValidationError describes a problem found during manifest validation.
 type ValidationError struct {
-	File    string `json:"file"`
-	Line    int    `json:"line,omitempty"`
-	Field   string `json:"field,omitempty"`
-	Message string `json:"message"`
-	Level   string `json:"level"` // "error" or "warning"
+	File     string   `json:"file"`
+	Line     int      `json:"line,omitempty"`
+	Field    string   `json:"field,omitempty"`
+	Message  string   `json:"message"`
+	Severity Severity `json:"severity"`
 }

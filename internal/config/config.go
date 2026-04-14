@@ -35,8 +35,18 @@ type HookAction struct {
 	Notify string `yaml:"notify,omitempty"`
 }
 
+// OutputFormat is the format for result rendering/serialization.
+type OutputFormat string
+
+const (
+	OutputPretty OutputFormat = "pretty"
+	OutputJSON   OutputFormat = "json"
+	OutputJUnit  OutputFormat = "junit"
+	OutputTAP    OutputFormat = "tap"
+)
+
 type Output struct {
-	Format      string `yaml:"format,omitempty"`
-	Verbose     bool   `yaml:"verbose,omitempty"`
-	SaveResults string `yaml:"save_results,omitempty"`
+	Format      OutputFormat `yaml:"format,omitempty"`
+	Verbose     bool         `yaml:"verbose,omitempty"`
+	SaveResults string       `yaml:"save_results,omitempty"`
 }

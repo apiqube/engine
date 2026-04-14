@@ -41,7 +41,7 @@ type Wave struct {
 type TestRef struct {
 	File *manifest.TestFile
 	Test *manifest.TestCase
-	Mode string // "test", "scenario", "load"
+	Mode manifest.TestMode
 }
 
 // Dependency describes a "must run after" relationship.

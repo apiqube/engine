@@ -16,10 +16,23 @@ type PluginInfo struct {
 	Fields      map[string]FieldSpec `json:"fields"`
 }
 
+// FieldType is the YAML type expected for a plugin-declared manifest field.
+type FieldType string
+
+const (
+	FieldString FieldType = "string"
+	FieldNumber FieldType = "number"
+	FieldBool   FieldType = "bool"
+	FieldObject FieldType = "object"
+	FieldArray  FieldType = "array"
+	FieldMap    FieldType = "map"
+	FieldAny    FieldType = "any"
+)
+
 type FieldSpec struct {
-	Type        string `json:"type"`
-	Required    bool   `json:"required"`
-	Description string `json:"description"`
+	Type        FieldType `json:"type"`
+	Required    bool      `json:"required"`
+	Description string    `json:"description"`
 }
 
 type FieldError struct {

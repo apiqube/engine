@@ -64,10 +64,10 @@ type WaveCompleted struct {
 
 // TestStarted is emitted before a single test case runs.
 type TestStarted struct {
-	Name     string `json:"name"`
-	File     string `json:"file"`
-	Protocol string `json:"protocol"`
-	Target   string `json:"target"`
+	Name     string   `json:"name"`
+	File     string   `json:"file"`
+	Protocol Protocol `json:"protocol"`
+	Target   string   `json:"target"`
 }
 
 // TestCompleted is emitted after a single test case completes.

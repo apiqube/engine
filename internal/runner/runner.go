@@ -81,10 +81,11 @@ type Result struct {
 }
 
 // TestOutcome is one test's execution record, plugin-agnostic.
+// The engine layer converts this into engine.TestResult for public API.
 type TestOutcome struct {
 	Name       string
 	File       string
-	Protocol   string
+	Protocol   string // mirrors engine.Protocol at string level to avoid import cycle
 	Target     string
 	Status     int
 	DurationMs int64

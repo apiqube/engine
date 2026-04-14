@@ -1,20 +1,15 @@
 package engine
 
-import (
-	"io"
-	"maps"
-)
+import "maps"
 
-// RunOption configures a single Run() invocation (isolated per-execution).
+// RunOption configures a single Run() invocation.
+// RunOptions are isolated per-execution — safe to use with concurrent Run() calls.
 type RunOption func(*runConfig)
 
+// runConfig holds all per-run state assembled from RunOptions.
+// This is built fresh for each Run() call, so concurrent runs do not share state.
 type runConfig struct {
-	// Input source (one of these must be set)
-	paths  []string
-	data   []byte
-	reader io.Reader
-
-	// Per-run overrides
+	input      Input
 	handler    EventHandler
 	signals    chan Signal
 	env        map[string]string
@@ -22,22 +17,8 @@ type runConfig struct {
 	pluginDir  string
 }
 
-// Input sources
-
-func FromPaths(paths ...string) RunOption {
-	return func(c *runConfig) { c.paths = paths }
-}
-
-func FromBytes(data []byte) RunOption {
-	return func(c *runConfig) { c.data = data }
-}
-
-func FromReader(r io.Reader) RunOption {
-	return func(c *runConfig) { c.reader = r }
-}
-
-// Per-run configuration
-
+// WithHandler sets the EventHandler for this Run.
+// If not set, events are discarded via NopHandler.
 func WithHandler(h EventHandler) RunOption {
 	return func(c *runConfig) {
 		if h != nil {
@@ -46,10 +27,14 @@ func WithHandler(h EventHandler) RunOption {
 	}
 }
 
+// WithSignals provides a channel for sending control signals (pause, resume, skip)
+// to the engine during execution.
 func WithSignals(ch chan Signal) RunOption {
 	return func(c *runConfig) { c.signals = ch }
 }
 
+// WithEnv overrides environment variables for this Run.
+// Values are accessible in templates via {{ env.KEY }}.
 func WithEnv(env map[string]string) RunOption {
 	return func(c *runConfig) {
 		if c.env == nil {
@@ -59,10 +44,14 @@ func WithEnv(env map[string]string) RunOption {
 	}
 }
 
+// WithConfigPath loads a specific .qube.yaml config file for this Run,
+// overriding any engine-level default.
 func WithConfigPath(path string) RunOption {
 	return func(c *runConfig) { c.configPath = path }
 }
 
+// WithPlugins sets the plugin directory for this Run,
+// overriding any engine-level default. Useful for multi-tenant cloud deployments.
 func WithPlugins(dir string) RunOption {
 	return func(c *runConfig) { c.pluginDir = dir }
 }

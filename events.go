@@ -115,12 +115,25 @@ type Progress struct {
 	Wave      int `json:"wave"`
 }
 
-// PluginEvent allows plugins to emit custom events without changing core.
-// The Kind field identifies the specific event type within the plugin.
+// PluginEvent is the universal wrapper for events emitted by plugins.
+//
+// Plugins (WASM or built-in) declare their events via PluginInfo.Events at load
+// time. When a plugin emits an event, the engine builds a PluginEvent with the
+// plugin name, event kind, and typed payload data (map[string]any).
+//
+// Frontends subscribe via Dispatcher using one of:
+//   - SubscribePluginEvent — raw handler by fully-qualified name
+//   - SubscribePluginTyped — decoded into a user-defined Go struct
 type PluginEvent struct {
-	Plugin string         `json:"plugin"`
-	Kind   string         `json:"kind"`
-	Data   map[string]any `json:"data,omitempty"`
+	Plugin string         `json:"plugin"`         // plugin name, e.g. "grpc"
+	Kind   string         `json:"kind"`           // event kind, e.g. "StreamMessageReceived"
+	Data   map[string]any `json:"data,omitempty"` // event payload matching the declared schema
+}
+
+// FullName returns the fully-qualified event name: "<plugin>.<kind>".
+// Used as the key for subscription routing.
+func (e PluginEvent) FullName() string {
+	return e.Plugin + "." + e.Kind
 }
 
 // sealed() marker methods — restrict Event implementations to this package.

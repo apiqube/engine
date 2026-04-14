@@ -1,5 +1,7 @@
 package plugin
 
+import "github.com/apiqube/engine"
+
 type Plugin interface {
 	Info() PluginInfo
 	Init(config map[string]any) error
@@ -8,31 +10,16 @@ type Plugin interface {
 	Destroy()
 }
 
+// PluginInfo is the in-process mirror of a plugin's declared metadata.
+// The host populates this from the JSON returned by plugin_info() for WASM
+// plugins, or constructs it directly for built-in Go plugins.
 type PluginInfo struct {
-	Name        string               `json:"name"`
-	Version     string               `json:"version"`
-	Description string               `json:"description"`
-	Protocols   []string             `json:"protocols"`
-	Fields      map[string]FieldSpec `json:"fields"`
-}
-
-// FieldType is the YAML type expected for a plugin-declared manifest field.
-type FieldType string
-
-const (
-	FieldString FieldType = "string"
-	FieldNumber FieldType = "number"
-	FieldBool   FieldType = "bool"
-	FieldObject FieldType = "object"
-	FieldArray  FieldType = "array"
-	FieldMap    FieldType = "map"
-	FieldAny    FieldType = "any"
-)
-
-type FieldSpec struct {
-	Type        FieldType `json:"type"`
-	Required    bool      `json:"required"`
-	Description string    `json:"description"`
+	Name        string                      `json:"name"`
+	Version     string                      `json:"version"`
+	Description string                      `json:"description"`
+	Protocols   []engine.Protocol           `json:"protocols"`
+	Fields      map[string]engine.FieldSpec `json:"fields,omitempty"`
+	Events      map[string]engine.EventSpec `json:"events,omitempty"`
 }
 
 type FieldError struct {
@@ -54,4 +41,16 @@ type TestOutput struct {
 	DurationMs int64             `json:"duration_ms"`
 	Error      string            `json:"error,omitempty"`
 	Metadata   map[string]any    `json:"metadata,omitempty"`
+}
+
+// Snapshot converts a PluginInfo into its public schema form for introspection.
+func (p PluginInfo) Snapshot() engine.PluginSchema {
+	return engine.PluginSchema{
+		Name:        p.Name,
+		Version:     p.Version,
+		Description: p.Description,
+		Protocols:   p.Protocols,
+		Fields:      p.Fields,
+		Events:      p.Events,
+	}
 }

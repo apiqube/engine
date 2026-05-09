@@ -10,18 +10,18 @@
 
 ## What is this?
 
-`engine` is the core library behind [ApiQube](https://github.com/apiqube) — a declarative API testing platform. It handles parsing, validation, dependency analysis, execution, cross-test data flow, and reporting for any protocol through a unified WASM plugin system.
+`engine` is the core library behind [ApiQube](https://github.com/apiqube) — a declarative API testing platform. It parses test manifests, builds a dependency graph from template references, executes tests through WASM protocol plugins, and emits typed events for any frontend to consume.
 
 **This is a library, not a CLI tool.** For the CLI, see [`apiqube/qube`](https://github.com/apiqube/qube).
 
-## Key Features
+## Key features
 
-- **Protocol-agnostic** — HTTP, gRPC, GraphQL, WebSocket, SQL, Kafka via plugins
-- **Auto-dependency graph** — detects cross-test references from templates at build time
-- **Smart parallelism** — groups independent tests into waves, runs them concurrently
-- **Three-level data flow** — `prev` (implicit), `save` (named), `alias` (cross-file)
-- **WASM plugin system** — extend with plugins written in any language (Go, Rust, etc.)
-- **Frontend-agnostic** — event-based Output interface for CLI, desktop, web, SDK
+- **Protocol-agnostic** — HTTP, gRPC, GraphQL, WebSocket and more via WASM plugins.
+- **Auto-dependency graph** — detects cross-test references in templates at build time.
+- **Smart parallelism** — groups independent tests into waves, runs them concurrently.
+- **Three-level data flow** — `prev` (implicit), `save` (named), `alias` (cross-file), plus streaming events.
+- **Frontend-agnostic** — typed event interface for CLI, desktop, web, SDK.
+- **Capability-based plugin host** — WASM plugins declare host capabilities they need; engine grants them per policy.
 
 ## Usage
 
@@ -31,12 +31,13 @@ package main
 import (
     "context"
     "fmt"
+
     "github.com/apiqube/engine"
 )
 
 func main() {
     eng := engine.New()
-    results, err := eng.Run(context.Background(), "./tests/")
+    results, err := eng.Run(context.Background(), engine.FromPaths("./tests/"))
     if err != nil {
         panic(err)
     }
@@ -48,26 +49,38 @@ func main() {
 
 ```
 engine/
-├── engine.go        Engine constructor, Run(), Check()
-├── interfaces.go    Sealed Event system, EventHandler, Signal
-├── options.go       Functional options (WithEventHandler, etc.)
-├── results.go       Results, TestResult, ValidationError
+├── engine.go          Engine constructor, Run(), Check()
+├── input.go           Sealed Input source — FromPaths, FromBytes, FromReader
+├── options.go         Engine-level functional options
+├── runopts.go         Per-Run options (handler, signals, env, plugins)
+├── checkopts.go       Per-Check options
+├── events.go          Sealed Event hierarchy + EventHandler interface
+├── dispatcher.go      Typed and plugin-event subscription routing
+├── results.go         Results, TestResult, WaveResult, ValidationError
+├── data.go            RequestData, ResponseData, AssertionResult
+├── protocol.go        Open Protocol type
+├── status.go          TestStatus, Signal
+├── schema.go          PluginSchema, FieldSpec, EventSpec for introspection
+├── introspect.go      Engine.Plugins(), EventSchema()
 └── internal/
-    ├── config/      .qube.yaml parsing
-    ├── manifest/    Test file types, normalization
-    ├── plugin/      Plugin contract and WASM host
-    ├── graph/       Dependency analysis, wave grouping
-    ├── runner/      Execution engine, parallel runner
-    ├── dataflow/    PassManager — prev, save, alias
-    ├── template/    Template DSL — Fake.*, methods
-    └── assert/      Assertion engine — operators, types
+    ├── manifest/      TestFile / TestCase / Expect / RetryConfig / LoadConfig
+    ├── config/        .qube.yaml schema and loader
+    ├── parser/        YAML loader, three-syntax normalizer
+    ├── graph/         Dependency graph builder, topological sort, save requirements
+    ├── dataflow/      Runtime store, prev snapshot, channel-based wait, gjson extract
+    ├── template/      Template DSL — fake.*, regex(), method chains
+    ├── assertion/     Operator engine and type-coercion rules
+    ├── plugin/        WASM host adapter (wazero), registry, capability layer
+    │   └── capabilities/   log, time, events, http
+    └── runner/        Wave execution, per-test pipeline
 ```
 
-## Related Repositories
+## Related repositories
 
 | Repo | Description |
 |---|---|
 | [`apiqube/qube`](https://github.com/apiqube/qube) | CLI tool (imports this engine) |
+| [`apiqube/plugin-http`](https://github.com/apiqube/plugin-http) | First-party HTTP plugin |
 | [`apiqube/cli`](https://github.com/apiqube/cli) | V1 CLI (archived reference) |
 
 ## License

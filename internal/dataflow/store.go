@@ -2,26 +2,34 @@ package dataflow
 
 import (
 	"context"
+	"errors"
 	"sync"
+
+	"github.com/apiqube/engine/internal/wire"
 )
 
-// Store holds runtime data for cross-test communication during a single Run().
-// One Store instance per Run — not shared across concurrent runs.
-type Store struct {
-	mu     sync.RWMutex
-	values map[string]any       // save: variables, alias results
-	prev   *Snapshot            // previous test response (scenario mode)
+// ErrStoreClosed is returned by WaitFor after Close has been called.
+var ErrStoreClosed = errors.New("dataflow: store closed")
 
-	chMu     sync.Mutex
-	channels map[string]chan any // async waiters for values not yet produced
+// Store holds runtime data for cross-test communication during a single Run.
+// One Store per Run — not shared across concurrent runs.
+type Store struct {
+	mu      sync.RWMutex
+	entries map[string]*entry
+	prev    *Snapshot
+	events  map[string][]wire.PluginEvent
+
+	closeOnce sync.Once
+	done      chan struct{}
 }
 
-// New creates an empty Store ready for a single Run.
-func New() *Store {
-	return &Store{
-		values:   make(map[string]any),
-		channels: make(map[string]chan any),
-	}
+// entry holds a value and a per-key "done" channel that is closed when the
+// value first becomes available. Closing the channel wakes every waiter on
+// that key — supports many concurrent WaitFor callers per key.
+type entry struct {
+	set   bool
+	value any
+	ready chan struct{}
 }
 
 // Snapshot captures a test response for use as `prev` in scenario mode.
@@ -33,55 +41,130 @@ type Snapshot struct {
 	Metadata map[string]any
 }
 
-// Get retrieves a named variable synchronously.
-// Returns (value, true) if present, (nil, false) otherwise.
+// New creates an empty Store ready for a single Run.
+func New() *Store {
+	return &Store{
+		entries: make(map[string]*entry),
+		events:  make(map[string][]wire.PluginEvent),
+		done:    make(chan struct{}),
+	}
+}
+
+// Get retrieves a named value synchronously.
 func (s *Store) Get(key string) (any, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	v, ok := s.values[key]
-	return v, ok
+	e, ok := s.entries[key]
+	if !ok || !e.set {
+		return nil, false
+	}
+	return e.value, true
 }
 
-// Set stores a named variable and notifies any async waiters on that key.
+// Set stores a named value and wakes any WaitFor callers blocked on the key.
+// Subsequent Sets overwrite the value but do not re-notify (waiters have moved on).
 func (s *Store) Set(key string, value any) {
 	s.mu.Lock()
-	s.values[key] = value
+	e := s.entryLocked(key)
+	first := !e.set
+	e.value = value
+	e.set = true
 	s.mu.Unlock()
-	s.notify(key, value)
+	if first {
+		close(e.ready)
+	}
 }
 
-// SetPrev updates the `prev` snapshot. Called by runner after each test in scenario mode.
+// SetPrev updates the previous-test snapshot (scenario mode).
 func (s *Store) SetPrev(snap *Snapshot) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.prev = snap
+	s.mu.Unlock()
 }
 
-// GetPrev returns the most recent test response, or nil if no prior test.
+// GetPrev returns the most recent prev snapshot, or nil.
 func (s *Store) GetPrev() *Snapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.prev
 }
 
-// WaitFor blocks until a value is available for the given key, or ctx is cancelled.
-// Used when a consumer in a parallel wave needs data from a producer that hasn't finished yet.
+// WaitFor blocks until a value is available for key, ctx is cancelled, or the
+// Store is closed. Multiple goroutines may wait on the same key.
 func (s *Store) WaitFor(ctx context.Context, key string) (any, error) {
-	// TODO: implementation
-	// 1. Fast path: check if value already exists → return immediately
-	// 2. Slow path: get or create channel for this key, select on channel and ctx.Done()
-	return nil, nil
+	if err := s.checkClosed(); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	e := s.entryLocked(key)
+	if e.set {
+		v := e.value
+		s.mu.Unlock()
+		return v, nil
+	}
+	ready := e.ready
+	s.mu.Unlock()
+
+	select {
+	case <-ready:
+		s.mu.RLock()
+		v := e.value
+		s.mu.RUnlock()
+		return v, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-s.done:
+		return nil, ErrStoreClosed
+	}
 }
 
-// notify wakes up all waiters on a given key with the supplied value.
-func (s *Store) notify(key string, value any) {
-	s.chMu.Lock()
-	defer s.chMu.Unlock()
-	if ch, ok := s.channels[key]; ok {
-		select {
-		case ch <- value:
-		default:
-			// buffer full, consumer will get value via Get()
-		}
+// AppendEvent appends a streaming event to the per-alias event list. Templates
+// reference these via `{{ alias.events.N.field }}`.
+func (s *Store) AppendEvent(alias string, event wire.PluginEvent) {
+	s.mu.Lock()
+	s.events[alias] = append(s.events[alias], event)
+	s.mu.Unlock()
+}
+
+// Events returns a copy of the events list for the given alias. Returns an
+// empty slice if no events are recorded.
+func (s *Store) Events(alias string) []wire.PluginEvent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	src := s.events[alias]
+	if len(src) == 0 {
+		return nil
 	}
+	out := make([]wire.PluginEvent, len(src))
+	copy(out, src)
+	return out
+}
+
+// Close releases every waiter and marks the store closed. Idempotent.
+func (s *Store) Close() error {
+	s.closeOnce.Do(func() {
+		close(s.done)
+	})
+	return nil
+}
+
+func (s *Store) checkClosed() error {
+	select {
+	case <-s.done:
+		return ErrStoreClosed
+	default:
+		return nil
+	}
+}
+
+// entryLocked returns the entry for key, creating it if absent.
+// Caller must hold s.mu (write lock).
+func (s *Store) entryLocked(key string) *entry {
+	e, ok := s.entries[key]
+	if ok {
+		return e
+	}
+	e = &entry{ready: make(chan struct{})}
+	s.entries[key] = e
+	return e
 }

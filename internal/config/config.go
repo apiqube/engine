@@ -1,15 +1,21 @@
 package config
 
+// Config is the parsed shape of a .qube.yaml file.
 type Config struct {
-	Version  int               `yaml:"version"`
-	Targets  map[string]string `yaml:"targets,omitempty"`
-	Defaults *Defaults         `yaml:"defaults,omitempty"`
-	Plugins  []string          `yaml:"plugins,omitempty"`
-	Runner   *Runner           `yaml:"runner,omitempty"`
-	Hooks    *Hooks            `yaml:"hooks,omitempty"`
-	Services map[string]any    `yaml:"services,omitempty"`
-	Output   *Output           `yaml:"output,omitempty"`
-	Env      map[string]string `yaml:"env,omitempty"`
+	Version  int                       `yaml:"version"`
+	Targets  map[string]string         `yaml:"targets,omitempty"`
+	Defaults *Defaults                 `yaml:"defaults,omitempty"`
+	Plugins  []string                  `yaml:"plugins,omitempty"`
+	Runner   *Runner                   `yaml:"runner,omitempty"`
+	Hooks    *Hooks                    `yaml:"hooks,omitempty"`
+	Services map[string]any            `yaml:"services,omitempty"`
+	Output   *Output                   `yaml:"output,omitempty"`
+	Env      map[string]string         `yaml:"env,omitempty"`
+
+	// PluginConfigs is the per-plugin configuration map sourced from the
+	// `pluginConfigs:` section of .qube.yaml. Each key is a plugin name; the
+	// value is passed to plugin.Init(config).
+	PluginConfigs map[string]map[string]any `yaml:"pluginConfigs,omitempty"`
 }
 
 type Defaults struct {
@@ -19,14 +25,14 @@ type Defaults struct {
 
 type Runner struct {
 	Parallel      bool `yaml:"parallel"`
-	MaxConcurrent int  `yaml:"max_concurrent,omitempty"`
-	FailFast      bool `yaml:"fail_fast,omitempty"`
+	MaxConcurrent int  `yaml:"maxConcurrent,omitempty"`
+	FailFast      bool `yaml:"failFast,omitempty"`
 }
 
 type Hooks struct {
 	Before    []HookAction `yaml:"before,omitempty"`
 	After     []HookAction `yaml:"after,omitempty"`
-	OnFailure []HookAction `yaml:"on_failure,omitempty"`
+	OnFailure []HookAction `yaml:"onFailure,omitempty"`
 }
 
 type HookAction struct {
@@ -48,5 +54,5 @@ const (
 type Output struct {
 	Format      OutputFormat `yaml:"format,omitempty"`
 	Verbose     bool         `yaml:"verbose,omitempty"`
-	SaveResults string       `yaml:"save_results,omitempty"`
+	SaveResults string       `yaml:"saveResults,omitempty"`
 }

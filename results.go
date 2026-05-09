@@ -1,6 +1,10 @@
 package engine
 
-import "time"
+import (
+	"time"
+
+	"github.com/apiqube/engine/internal/wire"
+)
 
 // Results holds the aggregated outcome of a Run().
 // Frontends use this as the final snapshot after execution.
@@ -44,18 +48,12 @@ type WaveResult struct {
 }
 
 // Severity classifies the importance of a validation issue.
-type Severity string
+type Severity = wire.Severity
 
 const (
-	SeverityError   Severity = "error"
-	SeverityWarning Severity = "warning"
+	SeverityError   = wire.SeverityError
+	SeverityWarning = wire.SeverityWarning
 )
 
 // ValidationError describes a problem found during manifest validation.
-type ValidationError struct {
-	File     string   `json:"file"`
-	Line     int      `json:"line,omitempty"`
-	Field    string   `json:"field,omitempty"`
-	Message  string   `json:"message"`
-	Severity Severity `json:"severity"`
-}
+type ValidationError = wire.ValidationError
